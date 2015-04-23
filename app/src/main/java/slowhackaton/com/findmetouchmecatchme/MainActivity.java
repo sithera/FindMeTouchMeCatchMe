@@ -19,7 +19,7 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        that = this;
         startbutton = (Button)findViewById(R.id.start_button);
         startbutton.setOnClickListener(new View.OnClickListener() {
             @Override

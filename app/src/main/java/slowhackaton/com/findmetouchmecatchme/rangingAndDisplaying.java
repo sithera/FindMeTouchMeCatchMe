@@ -3,6 +3,7 @@ package slowhackaton.com.findmetouchmecatchme;
 import android.os.RemoteException;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -31,6 +32,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.net.ssl.HttpsURLConnection;
+
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.X509TrustManager;
 
 public class rangingAndDisplaying extends ActionBarActivity {
     private Region ourRegion;
@@ -53,27 +65,31 @@ public class rangingAndDisplaying extends ActionBarActivity {
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String address = "http://slow.telemabk.pl/api/user/add";
+                String address = "https://slow.telemabk.pl/api/user/add";
                 Map<String,String> data = new HashMap<String,String>();
                 data.put("mac", currentBeacons.toString());
                 data.put("token","jeb sie rosiu");
                 JSONObject json = new JSONObject(data);
 
                 sendRequest(address,json);
+                Log.d("kuuurrrwa","janusz");
             }
         });
     }
 
      @Override
      protected void onStart(){
+        super.onStart();
+        this.trustEveryone();
         startRangingBeacons();
          cleanOldBeaconsAfter(TIME_IN_OURS);
      }
 
     @Override
     protected void onStop(){
+        super.onStop();
         try {
-            beaconManager.stopRanging(ourRegion);
+               beaconManager.stopRanging(ourRegion);
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -154,25 +170,54 @@ public class rangingAndDisplaying extends ActionBarActivity {
         t.start();
     }
 
-    private void sendRequest(String url,JSONObject obj){
-        HttpParams params = new BasicHttpParams();
-        HttpConnectionParams.setConnectionTimeout(params,10000);
-        HttpConnectionParams.setSoTimeout(params, 10000);
-        HttpClient httpClient = new DefaultHttpClient(params);
-        String json = obj.toString();
-        try{
-            HttpPost httppost = new HttpPost(url.toString());
-            httppost.setHeader("Content-type","application/json");
+    private void sendRequest(final String url, final JSONObject obj) {
+        Thread t = new Thread() {
+            @Override
+            public void run() {
+                HttpParams params = new BasicHttpParams();
+                HttpConnectionParams.setConnectionTimeout(params, 10000);
+                HttpConnectionParams.setSoTimeout(params, 10000);
+                HttpClient httpClient = new DefaultHttpClient(params);
+                String json = obj.toString();
+                try {
+                    HttpPost httppost = new HttpPost(url.toString());
+                    httppost.setHeader("Content-type", "application/json");
 
-            StringEntity se = new StringEntity(json);
-            httppost.setEntity(se);
+                    StringEntity se = new StringEntity(json);
+                    httppost.setEntity(se);
 //            httppost.setHeader("","");
-            HttpResponse response = httpClient.execute(httppost);
-        }catch(UnsupportedEncodingException e){
-            e.printStackTrace();
-        }catch(ClientProtocolException e){
-            e.printStackTrace();
-        }catch(IOException e){
+                    HttpResponse response = httpClient.execute(httppost);
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                } catch (ClientProtocolException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+
+        t.start();
+    }
+
+    private void trustEveryone() {
+        try {
+            HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier(){
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }});
+            SSLContext context = SSLContext.getInstance("TLS");
+            context.init(null, new X509TrustManager[]{new X509TrustManager(){
+                public void checkClientTrusted(X509Certificate[] chain,
+                                               String authType) throws CertificateException {}
+                public void checkServerTrusted(X509Certificate[] chain,
+                                               String authType) throws CertificateException {}
+                public X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[0];
+                }}}, new SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(
+                    context.getSocketFactory());
+        } catch (Exception e) { // should never happen
             e.printStackTrace();
         }
     }
