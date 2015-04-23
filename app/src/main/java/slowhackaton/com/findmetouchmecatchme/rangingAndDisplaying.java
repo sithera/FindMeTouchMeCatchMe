@@ -5,6 +5,8 @@ import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
 
 import com.estimote.sdk.Beacon;
 import com.estimote.sdk.BeaconManager;
@@ -37,6 +39,7 @@ public class rangingAndDisplaying extends ActionBarActivity {
     private Double TIME_IN_OURS = 0.5;
     private volatile boolean threadsShouldBeRunning = true;
     private final long HOUR  = 3600*1000;
+    private Button sendButton;
 
 
     @Override
@@ -46,6 +49,19 @@ public class rangingAndDisplaying extends ActionBarActivity {
         currentBeacons = new HashMap<String,Timestamp>();
         beaconManager = new BeaconManager(this);
         ourRegion =  new Region("region", null, null, null);
+        sendButton = (Button)findViewById(R.id.send_button);
+        sendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String address = "http://slow.telemabk.pl/api/user/add";
+                Map<String,String> data = new HashMap<String,String>();
+                data.put("mac", currentBeacons.toString());
+                data.put("token","jeb sie rosiu");
+                JSONObject json = new JSONObject(data);
+
+                sendRequest(address,json);
+            }
+        });
     }
 
      @Override
