@@ -60,7 +60,7 @@ public class rangingAndDisplaying extends ActionBarActivity {
         setContentView(R.layout.activity_ranging_and_displaying);
         currentBeacons = new HashMap<String,Timestamp>();
         beaconManager = new BeaconManager(this);
-        ourRegion =  new Region("region", null, null, null);
+        ourRegion =  new Region("regionId", null, null, null);
         sendButton = (Button)findViewById(R.id.send_button);
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -126,6 +126,7 @@ public class rangingAndDisplaying extends ActionBarActivity {
     }
 
     private void startRangingBeacons(){
+
         beaconManager.setRangingListener(new BeaconManager.RangingListener() {
             @Override
             public void onBeaconsDiscovered(Region region, List<Beacon> beacons) {
@@ -133,15 +134,23 @@ public class rangingAndDisplaying extends ActionBarActivity {
                     String key = makeKey(beacon);
                     Date date= new Date();
                     currentBeacons.put(key,new Timestamp(date.getTime()));
+                    Log.d("tunak, tunak tun", "da da da");
+                }
+
+            }
+        });
+
+        beaconManager.connect(new BeaconManager.ServiceReadyCallback() {
+            @Override
+            public void onServiceReady() {
+                try {
+                    beaconManager.startRanging(ourRegion);
+                }catch(RemoteException rException){
+                    rException.printStackTrace();
                 }
             }
         });
 
-        try {
-            beaconManager.startRanging(ourRegion);
-        }catch(RemoteException rException){
-            rException.printStackTrace();
-        }
     }
 
     private void cleanOldBeaconsAfter(final Double timeInHours){
