@@ -191,6 +191,8 @@ public class rangingAndDisplaying extends ActionBarActivity {
                     httppost.setEntity(se);
 //            httppost.setHeader("","");
                     HttpResponse response = httpClient.execute(httppost);
+					String dzejson = EntityUtils.toString(response.getEntity());
+					Log.d("dzejson", "siema, jestem dzejson");
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 } catch (ClientProtocolException e) {
