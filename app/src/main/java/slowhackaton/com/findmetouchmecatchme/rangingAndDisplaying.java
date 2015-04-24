@@ -141,11 +141,16 @@ public class rangingAndDisplaying extends ActionBarActivity {
             }
         });
 
-        try {
-            beaconManager.startRanging(ourRegion);
-        }catch(RemoteException rException){
-            rException.printStackTrace();
-        }
+        beaconManager.connect(new BeaconManager.ServiceReadyCallback() {
+            @Override
+            public void onServiceReady() {
+                try {
+                    beaconManager.startRanging(ourRegion);
+                } catch (RemoteException rException) {
+                    rException.printStackTrace();
+                }
+            }
+        });
     }
 
     private void cleanOldBeaconsAfter(final Double timeInHours){
@@ -191,6 +196,7 @@ public class rangingAndDisplaying extends ActionBarActivity {
                     httppost.setEntity(se);
 //            httppost.setHeader("","");
                     HttpResponse response = httpClient.execute(httppost);
+
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 } catch (ClientProtocolException e) {
