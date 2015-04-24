@@ -142,11 +142,16 @@ public class rangingAndDisplaying extends ActionBarActivity {
             }
         });
 
-        try {
-            beaconManager.startRanging(ourRegion);
-        }catch(RemoteException rException){
-            rException.printStackTrace();
-        }
+        beaconManager.connect(new BeaconManager.ServiceReadyCallback() {
+            @Override
+            public void onServiceReady() {
+                try {
+                    beaconManager.startRanging(ourRegion);
+                } catch (RemoteException rException) {
+                    rException.printStackTrace();
+                }
+            }
+        });
     }
 
     private void cleanOldBeaconsAfter(final Double timeInHours){
