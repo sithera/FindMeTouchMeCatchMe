@@ -23,6 +23,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
+import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -193,6 +194,7 @@ public class rangingAndDisplaying extends ActionBarActivity {
                     HttpResponse response = httpClient.execute(httppost);
 					String dzejson = EntityUtils.toString(response.getEntity());
 					Log.d("dzejson", "siema, jestem dzejson");
+                    Log.d("Jason", dzejson);
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 } catch (ClientProtocolException e) {
