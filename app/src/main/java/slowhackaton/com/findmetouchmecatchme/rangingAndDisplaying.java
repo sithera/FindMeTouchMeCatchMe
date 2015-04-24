@@ -31,6 +31,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -58,10 +59,13 @@ public class rangingAndDisplaying extends ActionBarActivity {
     private volatile boolean threadsShouldBeRunning = true;
     private final long HOUR  = 3600*1000;
     private Button sendButton;
-    private static final String tag_data = "data";
-    private static final String tag_user = "user";
-    private static final String tag_time = "time";
-    private static final String tag_mac = "mac";
+    private  final String tag_data = "data";
+    private  final String tag_user = "user";
+    private  final String tag_time = "time";
+    private  final String tag_mac = "mac";
+    public ListView listView1;
+    //public static String[] dataList = new String[30];
+    ArrayList<String> dataList = new ArrayList<String>(30);
 
 
     @Override
@@ -71,6 +75,9 @@ public class rangingAndDisplaying extends ActionBarActivity {
         currentBeacons = new HashMap<String,Timestamp>();
         beaconManager = new BeaconManager(this);
         ourRegion =  new Region("region", null, null, null);
+
+
+        listView1=(ListView)findViewById(R.id.Lista);
         sendButton = (Button)findViewById(R.id.button);
 
         sendButton.setOnClickListener(new View.OnClickListener() {
@@ -85,8 +92,17 @@ public class rangingAndDisplaying extends ActionBarActivity {
                 sendRequest(address,json);
                 Log.d("kuuurrrwa","janusz");
 
+                RowBean RowBean_data[] = new RowBean[]{
+                        new RowBean(tag_user)
+                };
+                RowAdapter adapter = new RowAdapter(getApplicationContext(), R.layout.format_friend_line, RowBean_data);
+
+                listView1.setAdapter(adapter);
             }
-        });
+        }
+
+
+        );
     }
 
     @Override
@@ -222,8 +238,16 @@ public class rangingAndDisplaying extends ActionBarActivity {
                             String user = c.getString(tag_user);
                             String time = c.getString(tag_time);
                             String mac = c.getString(tag_mac);
+
+                         //  data.put(tag_user, user);
+                          // data.put(tag_time, time);
+                         //  data.put(tag_mac, mac);
+                           dataList.add(user);                     // adding contact to list
                         }
+
                     }
+
+
                     catch(Exception e){
                         e.printStackTrace();
                     }
@@ -261,4 +285,6 @@ public class rangingAndDisplaying extends ActionBarActivity {
             e.printStackTrace();
         }
     }
+
+
 }
