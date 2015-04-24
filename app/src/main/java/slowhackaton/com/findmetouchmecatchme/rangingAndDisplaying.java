@@ -12,6 +12,7 @@ import android.widget.Button;
 import com.estimote.sdk.Beacon;
 import com.estimote.sdk.BeaconManager;
 import com.estimote.sdk.Region;
+import com.facebook.AccessToken;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -45,6 +46,8 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509TrustManager;
 
 public class rangingAndDisplaying extends ActionBarActivity {
+
+
     private Region ourRegion;
     private BeaconManager beaconManager;
     private Map<String,Timestamp> currentBeacons;
@@ -60,15 +63,16 @@ public class rangingAndDisplaying extends ActionBarActivity {
         setContentView(R.layout.activity_ranging_and_displaying);
         currentBeacons = new HashMap<String,Timestamp>();
         beaconManager = new BeaconManager(this);
-        ourRegion =  new Region("regionId", null, null, null);
-        sendButton = (Button)findViewById(R.id.send_button);
+        ourRegion =  new Region("region", null, null, null);
+        sendButton = (Button)findViewById(R.id.button);
+
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String address = "https://slow.telemabk.pl/api/user/add";
                 Map<String,String> data = new HashMap<String,String>();
                 data.put("mac", currentBeacons.toString());
-                data.put("token","jeb sie rosiu");
+                data.put("token", AccessToken.getCurrentAccessToken().getToken());
                 JSONObject json = new JSONObject(data);
 
                 sendRequest(address,json);
@@ -77,19 +81,19 @@ public class rangingAndDisplaying extends ActionBarActivity {
         });
     }
 
-     @Override
-     protected void onStart(){
+    @Override
+    protected void onStart(){
         super.onStart();
         this.trustEveryone();
         startRangingBeacons();
-         cleanOldBeaconsAfter(TIME_IN_OURS);
-     }
+        cleanOldBeaconsAfter(TIME_IN_OURS);
+    }
 
     @Override
     protected void onStop(){
         super.onStop();
         try {
-               beaconManager.stopRanging(ourRegion);
+            beaconManager.stopRanging(ourRegion);
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -126,7 +130,6 @@ public class rangingAndDisplaying extends ActionBarActivity {
     }
 
     private void startRangingBeacons(){
-
         beaconManager.setRangingListener(new BeaconManager.RangingListener() {
             @Override
             public void onBeaconsDiscovered(Region region, List<Beacon> beacons) {
@@ -134,23 +137,15 @@ public class rangingAndDisplaying extends ActionBarActivity {
                     String key = makeKey(beacon);
                     Date date= new Date();
                     currentBeacons.put(key,new Timestamp(date.getTime()));
-                    Log.d("tunak, tunak tun", "da da da");
-                }
-
-            }
-        });
-
-        beaconManager.connect(new BeaconManager.ServiceReadyCallback() {
-            @Override
-            public void onServiceReady() {
-                try {
-                    beaconManager.startRanging(ourRegion);
-                }catch(RemoteException rException){
-                    rException.printStackTrace();
                 }
             }
         });
 
+        try {
+            beaconManager.startRanging(ourRegion);
+        }catch(RemoteException rException){
+            rException.printStackTrace();
+        }
     }
 
     private void cleanOldBeaconsAfter(final Double timeInHours){
