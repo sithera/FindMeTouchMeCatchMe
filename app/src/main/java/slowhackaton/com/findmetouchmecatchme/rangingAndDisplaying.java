@@ -8,6 +8,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ListView;
 
 import com.estimote.sdk.Beacon;
 import com.estimote.sdk.BeaconManager;
@@ -24,6 +25,7 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -56,6 +58,10 @@ public class rangingAndDisplaying extends ActionBarActivity {
     private volatile boolean threadsShouldBeRunning = true;
     private final long HOUR  = 3600*1000;
     private Button sendButton;
+    private static final String tag_data = "data";
+    private static final String tag_user = "user";
+    private static final String tag_time = "time";
+    private static final String tag_mac = "mac";
 
 
     @Override
@@ -78,6 +84,7 @@ public class rangingAndDisplaying extends ActionBarActivity {
 
                 sendRequest(address,json);
                 Log.d("kuuurrrwa","janusz");
+
             }
         });
     }
@@ -200,6 +207,26 @@ public class rangingAndDisplaying extends ActionBarActivity {
 					String dzejson = EntityUtils.toString(response.getEntity());
 					Log.d("dzejson", "siema, jestem dzejson");
                     Log.d("Jason", dzejson);
+
+
+
+                    try {
+                        JSONObject jsonObj = new JSONObject(dzejson);
+                        JSONArray data = null;
+                        data = jsonObj.getJSONArray(tag_data);
+
+
+                        for (int i = 0; i < data.length(); i++) {
+                            JSONObject c = data.getJSONObject(i);
+
+                            String user = c.getString(tag_user);
+                            String time = c.getString(tag_time);
+                            String mac = c.getString(tag_mac);
+                        }
+                    }
+                    catch(Exception e){
+                        e.printStackTrace();
+                    }
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 } catch (ClientProtocolException e) {
