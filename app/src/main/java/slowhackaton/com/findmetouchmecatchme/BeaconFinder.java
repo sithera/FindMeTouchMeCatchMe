@@ -49,24 +49,31 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509TrustManager;
 
-public class rangingAndDisplaying extends ActionBarActivity {
-
+public class BeaconFinder extends ActionBarActivity {
 
     private Region ourRegion;
     private BeaconManager beaconManager;
-    private Map<String,Timestamp> currentBeacons;
     private Double TIME_IN_OURS = 0.5;
     private volatile boolean threadsShouldBeRunning = true;
     private final long HOUR  = 3600*1000;
     private Button sendButton;
-    private  final String tag_data = "data";
-    private  final String tag_user = "user";
-    private  final String tag_time = "time";
-    private  final String tag_mac = "mac";
+    private  final String SERVER_ADDRESS = "https://slow.telemabk.pl";
+    private String address;
+    private JSONObject data;
+
+    private final String tag_data = "data";
+    private final String tag_user = "user";
+    private final String tag_time = "time";
+    private final String tag_mac = "mac";
+    private final String tag_token = "token";
+    private final String tag_event = "event";
+    private final String tag_name = "name";
+    private final String tag_description = "description";
+
+    private Map<String,Timestamp> currentBeacons;
     public ListView listView1;
     //public static String[] dataList = new String[30];
     ArrayList<String> dataList = new ArrayList<String>(30);
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,39 +83,20 @@ public class rangingAndDisplaying extends ActionBarActivity {
         beaconManager = new BeaconManager(this);
         ourRegion =  new Region("region", null, null, null);
 
-
-        listView1=(ListView)findViewById(R.id.Lista);
-        sendButton = (Button)findViewById(R.id.button);
-
-        sendButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String address = "https://slow.telemabk.pl/api/user/add";
-                Map<String,String> data = new HashMap<String,String>();
-                data.put("mac", currentBeacons.toString());
-                data.put("token", AccessToken.getCurrentAccessToken().getToken());
-                JSONObject json = new JSONObject(data);
-
-                sendRequest(address,json);
-                Log.d("kuuurrrwa","janusz");
-
-                RowBean RowBean_data[] = new RowBean[]{
-                        new RowBean(tag_user)
-                };
-                RowAdapter adapter = new RowAdapter(getApplicationContext(), R.layout.format_friend_line, RowBean_data);
-
-                listView1.setAdapter(adapter);
-            }
-        }
-
-
-        );
+//        listView1=(ListView)findViewById(R.id.Lista);
+//        sendButton = (Button)findViewById(R.id.button);
+//
+//        sendButton.setOnClickListener(new View.OnClickListener() {
+//                                          @Override
+//                                          public void onClick(View v) {
+//
+//                                          }
+//        });
     }
 
     @Override
     protected void onStart(){
         super.onStart();
-        this.trustEveryone();
         startRangingBeacons();
         cleanOldBeaconsAfter(TIME_IN_OURS);
     }
@@ -128,19 +116,14 @@ public class rangingAndDisplaying extends ActionBarActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_ranging_and_displaying, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
         }
@@ -203,88 +186,65 @@ public class rangingAndDisplaying extends ActionBarActivity {
         t.start();
     }
 
-    private void sendRequest(final String url, final JSONObject obj) {
-        Thread t = new Thread() {
-            @Override
-            public void run() {
-                HttpParams params = new BasicHttpParams();
-                HttpConnectionParams.setConnectionTimeout(params, 10000);
-                HttpConnectionParams.setSoTimeout(params, 10000);
-                HttpClient httpClient = new DefaultHttpClient(params);
-                String json = obj.toString();
-                try {
-                    HttpPost httppost = new HttpPost(url.toString());
-                    httppost.setHeader("Content-type", "application/json");
+    private void addUser(){
+        address = SERVER_ADDRESS + "/api/user/add";
 
-                    StringEntity se = new StringEntity(json);
-                    httppost.setEntity(se);
-//            httppost.setHeader("","");
-                    HttpResponse response = httpClient.execute(httppost);
-					String dzejson = EntityUtils.toString(response.getEntity());
-					Log.d("dzejson", "siema, jestem dzejson");
-                    Log.d("Jason", dzejson);
+        Map<String, String> data = new HashMap<String, String>();
+        data.put(tag_mac, currentBeacons.toString());
+        data.put(tag_token, AccessToken.getCurrentAccessToken().getToken());
 
+        JSONObject json = new JSONObject(data);
 
-
-                    try {
-                        JSONObject jsonObj = new JSONObject(dzejson);
-                        JSONArray data = null;
-                        data = jsonObj.getJSONArray(tag_data);
-
-
-                        for (int i = 0; i < data.length(); i++) {
-                            JSONObject c = data.getJSONObject(i);
-
-                            String user = c.getString(tag_user);
-                            String time = c.getString(tag_time);
-                            String mac = c.getString(tag_mac);
-
-                         //  data.put(tag_user, user);
-                          // data.put(tag_time, time);
-                         //  data.put(tag_mac, mac);
-                           dataList.add(user);                     // adding contact to list
-                        }
-
-                    }
-
-
-                    catch(Exception e){
-                        e.printStackTrace();
-                    }
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                } catch (ClientProtocolException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-
-        t.start();
+        send(address, json);
     }
 
-    private void trustEveryone() {
-        try {
-            HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier(){
-                public boolean verify(String hostname, SSLSession session) {
-                    return true;
-                }});
-            SSLContext context = SSLContext.getInstance("TLS");
-            context.init(null, new X509TrustManager[]{new X509TrustManager(){
-                public void checkClientTrusted(X509Certificate[] chain,
-                                               String authType) throws CertificateException {}
-                public void checkServerTrusted(X509Certificate[] chain,
-                                               String authType) throws CertificateException {}
-                public X509Certificate[] getAcceptedIssuers() {
-                    return new X509Certificate[0];
-                }}}, new SecureRandom());
-            HttpsURLConnection.setDefaultSSLSocketFactory(
-                    context.getSocketFactory());
-        } catch (Exception e) { // should never happen
-            e.printStackTrace();
-        }
+    private void userList(){
+        address = SERVER_ADDRESS + "/api/user/list";
+
+        Map<String, String> data = new HashMap<String, String>();
+        data.put(tag_mac, currentBeacons.toString());
+        data.put(tag_token, AccessToken.getCurrentAccessToken().getToken());
+
+        JSONObject json = new JSONObject(data);
+
+        send(address, json);
     }
 
+    private void addBeacon(String beaconID, String event, String description){
+        address = SERVER_ADDRESS + "api/beacon/add";
+
+        Map<String, String> data = new HashMap<String, String>();
+        data.put(tag_mac, beaconID);
+        data.put(tag_description, description);
+        data.put(tag_event, event);
+        data.put(tag_token, AccessToken.getCurrentAccessToken().getToken());
+
+        JSONObject json = new JSONObject(data);
+
+        send(address, json);
+    }
+
+    private void send(String address,JSONObject data){
+        this.address = address;
+        this.data = data;
+        SendPostRequestTask sendTask = new SendPostRequestTask(this);
+        sendTask.execute();
+//        RowBean RowBean_data[] = new RowBean[]{
+//                new RowBean(tag_user)
+//        };
+//        RowAdapter adapter = new RowAdapter(getApplicationContext(), R.layout.format_friend_line, RowBean_data);
+//
+//        listView1.setAdapter(adapter);
+    }
+
+    public String getAddress(){
+        return this.address;
+    }
+
+    public JSONObject getData(){
+        return this.data;
+    }
+
+    public void handleResponse(JSONObject response){};
 
 }

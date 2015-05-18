@@ -27,7 +27,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".rangingAndDisplaying"
+            android:name=".BeaconFinder"
             android:label="@string/title_activity_ranging_and_displaying" >
         </activity>
         <service android:name="com.estimote.sdk.service.BeaconService" android:exported="false"/>
