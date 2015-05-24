@@ -19,7 +19,8 @@
             android:value="@string/facebook_app_id" />
         <activity
             android:name=".MainActivity"
-            android:label="@string/app_name" >
+            android:label="@string/app_name"
+            android:screenOrientation="portrait" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -28,7 +29,8 @@
         </activity>
         <activity
             android:name=".BeaconFinder"
-            android:label="@string/title_activity_ranging_and_displaying" >
+            android:label="@string/title_activity_ranging_and_displaying"
+            android:screenOrientation="portrait">
         </activity>
         <service android:name="com.estimote.sdk.service.BeaconService" android:exported="false"/>
         <activity

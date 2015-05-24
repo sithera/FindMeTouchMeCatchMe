@@ -13,7 +13,6 @@ public class RowBean {
 
     }
 
-    //nie jestem pewny jak zadziała tutaj string, wiec testować trzeba
     public RowBean(String Username) {
 
 

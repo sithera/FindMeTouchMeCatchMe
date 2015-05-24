@@ -1,8 +1,7 @@
 package slowhackaton.com.findmetouchmecatchme;
 
 import android.os.AsyncTask;
-
-import com.estimote.sdk.Beacon;
+import android.util.Log;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -29,16 +28,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509TrustManager;
 
-/**
- * Created by wolodija on 23.04.15.
- */
 public class SendPostRequestTask extends AsyncTask<Object,JSONObject,JSONObject> {
-
-    private  final String tag_data = "data";
-    private  final String tag_user = "user";
-    private  final String tag_time = "time";
-    private  final String tag_mac = "mac";
-
     private String address;
     private JSONObject data;
     private BeaconFinder beaconFinder;
@@ -67,17 +57,19 @@ public class SendPostRequestTask extends AsyncTask<Object,JSONObject,JSONObject>
         HttpConnectionParams.setSoTimeout(params, 10000);
         HttpClient httpClient = new DefaultHttpClient(params);
         String json = obj.toString();
-        JSONObject response;
         try {
             HttpPost httppost = new HttpPost(url.toString());
             httppost.setHeader("Content-type", "application/json");
 
+            Log.d("request", json);
+
             StringEntity se = new StringEntity(json);
             httppost.setEntity(se);
             HttpResponse rawResponse = httpClient.execute(httppost);
+            Log.d("response",rawResponse.toString());
             String responseJson = EntityUtils.toString(rawResponse.getEntity());
-            response = new JSONObject(responseJson);
-            return response;
+            Log.d("response",responseJson);
+            return new JSONObject(responseJson);
 
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
@@ -91,7 +83,6 @@ public class SendPostRequestTask extends AsyncTask<Object,JSONObject,JSONObject>
 
         return null;
     }
-
 
     private void trustEveryone() {
         try {
@@ -111,7 +102,7 @@ public class SendPostRequestTask extends AsyncTask<Object,JSONObject,JSONObject>
                 }}}, new SecureRandom());
             HttpsURLConnection.setDefaultSSLSocketFactory(
                     context.getSocketFactory());
-        } catch (Exception e) { // should never happen
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

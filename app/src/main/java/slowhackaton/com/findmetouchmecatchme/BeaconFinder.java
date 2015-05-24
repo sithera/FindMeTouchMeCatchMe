@@ -15,51 +15,32 @@ import com.estimote.sdk.BeaconManager;
 import com.estimote.sdk.Region;
 import com.facebook.AccessToken;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
-import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.net.ssl.HttpsURLConnection;
-
-import java.security.SecureRandom;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.X509TrustManager;
-
 public class BeaconFinder extends ActionBarActivity {
+
+    private  final String SERVER_ADDRESS = "https://slow.telemabk.pl";
+    private final Double TIME_IN_OURS = 0.5;
+    private final long HOUR  = 60*60*1000;
 
     private Region ourRegion;
     private BeaconManager beaconManager;
-    private Double TIME_IN_OURS = 0.5;
-    private volatile boolean threadsShouldBeRunning = true;
-    private final long HOUR  = 3600*1000;
-    private Button sendButton;
-    private  final String SERVER_ADDRESS = "https://slow.telemabk.pl";
+
     private String address;
     private JSONObject data;
+
+    private volatile boolean threadsShouldBeRunning = true;
 
     private final String tag_data = "data";
     private final String tag_user = "user";
@@ -70,28 +51,36 @@ public class BeaconFinder extends ActionBarActivity {
     private final String tag_name = "name";
     private final String tag_description = "description";
 
+    private Map<String,Map<String,String>> friends;
+
+    private Button sendButton;
+
     private Map<String,Timestamp> currentBeacons;
     public ListView listView1;
-    //public static String[] dataList = new String[30];
-    ArrayList<String> dataList = new ArrayList<String>(30);
+    private final ArrayList<String> dataList = new ArrayList<String>(30);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ranging_and_displaying);
+
+        friends = new HashMap<String,Map<String,String>>();
+
         currentBeacons = new HashMap<String,Timestamp>();
         beaconManager = new BeaconManager(this);
         ourRegion =  new Region("region", null, null, null);
 
-//        listView1=(ListView)findViewById(R.id.Lista);
-//        sendButton = (Button)findViewById(R.id.button);
-//
-//        sendButton.setOnClickListener(new View.OnClickListener() {
-//                                          @Override
-//                                          public void onClick(View v) {
-//
-//                                          }
-//        });
+        listView1=(ListView)findViewById(R.id.Lista);
+        sendButton = (Button)findViewById(R.id.button);
+
+        sendButton.setOnClickListener(new View.OnClickListener() {
+                                          @Override
+                                          public void onClick(View v) {
+                                              userList();
+                                              addUser();
+                                              addBeacon("pierwszy", "drugi", "trzeci");
+                                          }
+        });
     }
 
     @Override
@@ -211,7 +200,7 @@ public class BeaconFinder extends ActionBarActivity {
     }
 
     private void addBeacon(String beaconID, String event, String description){
-        address = SERVER_ADDRESS + "api/beacon/add";
+        address = SERVER_ADDRESS + "/api/beacon/add";
 
         Map<String, String> data = new HashMap<String, String>();
         data.put(tag_mac, beaconID);
@@ -229,12 +218,6 @@ public class BeaconFinder extends ActionBarActivity {
         this.data = data;
         SendPostRequestTask sendTask = new SendPostRequestTask(this);
         sendTask.execute();
-//        RowBean RowBean_data[] = new RowBean[]{
-//                new RowBean(tag_user)
-//        };
-//        RowAdapter adapter = new RowAdapter(getApplicationContext(), R.layout.format_friend_line, RowBean_data);
-//
-//        listView1.setAdapter(adapter);
     }
 
     public String getAddress(){
@@ -245,6 +228,63 @@ public class BeaconFinder extends ActionBarActivity {
         return this.data;
     }
 
-    public void handleResponse(JSONObject response){};
+    public void handleResponse(JSONObject response){
+        Map<String, Object> serverResponseMap = null;
+        if(response == null){
+            Log.d("error", "response jest nullem");
+            return;
+        }
+        if(response.has(tag_data)){
+            try {
+                JSONArray data = (JSONArray)response.get("data");
+                serverResponseMap = handleListResponse(data);
+            } catch(JSONException e){
+                e.printStackTrace();
+            }
+
+        } else {
+            Log.d("response handler", "There is no data");
+        }
+        if (serverResponseMap == null) return;
+        Log.d("server Response", serverResponseMap.toString());
+    };
+
+    public Map<String,Object> handleListResponse(JSONArray data){
+        for (int i = 0; i < data.length(); i++) {
+            try {
+                JSONObject friend = data.getJSONObject(i);
+                updateFriendList(friend);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
+    private void updateFriendList(JSONObject friend) throws JSONException {
+        String mac = (String) friend.get(tag_mac);
+        String time = (String) friend.get(tag_time);
+        String user = (String) friend.get(tag_user);
+
+        if(friends.get(mac) == null){
+            Log.d("Creating new known ", "beacon for: "+mac);
+            friends.put(mac, new HashMap<String,String>());
+        }
+
+        Map<String,String> beacon = friends.get(mac);
+        beacon.put(user, time);
+        updateView();
+    }
+
+    private void updateView(){
+
+
+        RowBean RowBean_data[] = new RowBean[]{
+                new RowBean(tag_user)
+        };
+        RowAdapter adapter = new RowAdapter(this, R.layout.format_friend_line, RowBean_data);
+
+        listView1.setAdapter(adapter);
+    }
 
 }

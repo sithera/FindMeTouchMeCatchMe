@@ -16,7 +16,6 @@ import com.facebook.login.LoginManager;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
 
-
 public class MainActivity extends ActionBarActivity {
 
     LoginButton startbutton;
@@ -30,23 +29,13 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
         callbackManager = CallbackManager.Factory.create();
 
-
-
         startbutton = (LoginButton)findViewById(R.id.login_button);
- /*       startbutton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent startRangingaAndDisplaying = new Intent(that, BeaconFinder.class);
-                startActivity(startRangingaAndDisplaying);
-            }*/
 
         LoginManager.getInstance().registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {
-                Log.d("aaa", "udalo sie");
                 Intent startRangingaAndDisplaying = new Intent(that, BeaconFinder.class);
                 startActivity(startRangingaAndDisplaying);
-
             }
 
             @Override
