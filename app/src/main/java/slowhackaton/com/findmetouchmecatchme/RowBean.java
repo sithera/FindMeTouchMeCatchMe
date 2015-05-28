@@ -5,18 +5,16 @@ package slowhackaton.com.findmetouchmecatchme;
  */
 public class RowBean {
 
-
-    public String UserName;
-    public String name;
+    public String userName;
+    public String id;
 
     public RowBean(){
 
     }
 
-    public RowBean(String Username) {
-
-
-       this.UserName = Username;
+    public RowBean(String userName, String id) {
+       this.userName = userName;
+       this.id = id;
     }
 
     /*
@@ -26,5 +24,23 @@ public class RowBean {
         this.UserName = Username;
         this.name = name;
     }*/
+    @Override
+    public boolean equals(Object object)
+    {
+        boolean isEqual= false;
+
+        if (object != null && object instanceof RowBean)
+        {
+            isEqual = (this.id == ((RowBean) object).id);
+        }
+
+        return isEqual;
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.parseInt(this.id);
+    }
+
 
 }

@@ -1,5 +1,9 @@
 package slowhackaton.com.findmetouchmecatchme;
 
+import android.content.ContentUris;
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.RemoteException;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -14,6 +18,7 @@ import com.estimote.sdk.Beacon;
 import com.estimote.sdk.BeaconManager;
 import com.estimote.sdk.Region;
 import com.facebook.AccessToken;
+import com.facebook.login.LoginManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,6 +32,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import static java.lang.Thread.sleep;
 
 public class BeaconFinder extends ActionBarActivity {
 
@@ -43,17 +50,18 @@ public class BeaconFinder extends ActionBarActivity {
     private volatile boolean threadsShouldBeRunning = true;
 
     private final String tag_data = "data";
-    private final String tag_user = "user";
+    private final String tag_user = "user_name";
     private final String tag_time = "time";
     private final String tag_mac = "mac";
     private final String tag_token = "token";
     private final String tag_event = "event";
     private final String tag_name = "name";
     private final String tag_description = "description";
+    private final String tag_id = "user_id";
 
     private Map<String,Map<String,String>> friends;
 
-    private Button sendButton;
+    private Button refreshButton;
 
     private Map<String,Timestamp> currentBeacons;
     public ListView listView1;
@@ -62,6 +70,13 @@ public class BeaconFinder extends ActionBarActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        android.support.v7.app.ActionBar barHide = getSupportActionBar();
+        if (barHide != null) {
+            barHide.hide();
+        }
+
+        Log.d("beacon finder", "started");
+
         setContentView(R.layout.activity_ranging_and_displaying);
 
         friends = new HashMap<String,Map<String,String>>();
@@ -71,15 +86,13 @@ public class BeaconFinder extends ActionBarActivity {
         ourRegion =  new Region("region", null, null, null);
 
         listView1=(ListView)findViewById(R.id.Lista);
-        sendButton = (Button)findViewById(R.id.button);
+        refreshButton = (Button)findViewById(R.id.button);
 
-        sendButton.setOnClickListener(new View.OnClickListener() {
-                                          @Override
-                                          public void onClick(View v) {
-                                              userList();
-                                              addUser();
-                                              addBeacon("pierwszy", "drugi", "trzeci");
-                                          }
+        refreshButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                userList();
+            }
         });
     }
 
@@ -87,7 +100,25 @@ public class BeaconFinder extends ActionBarActivity {
     protected void onStart(){
         super.onStart();
         startRangingBeacons();
+        startSendingKnownBeaconsToServer();
         cleanOldBeaconsAfter(TIME_IN_OURS);
+    }
+
+    private void startSendingKnownBeaconsToServer() {
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(threadsShouldBeRunning) {
+                    addUser();
+                    try {
+                        sleep(5*1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+        t.start();
     }
 
     @Override
@@ -101,6 +132,7 @@ public class BeaconFinder extends ActionBarActivity {
         beaconManager.disconnect();
 
         threadsShouldBeRunning = false;
+        LoginManager.getInstance().logOut();
     }
 
     @Override
@@ -175,13 +207,13 @@ public class BeaconFinder extends ActionBarActivity {
         t.start();
     }
 
-    private void addUser(){
+    public void addUser(){
         address = SERVER_ADDRESS + "/api/user/add";
 
         Map<String, String> data = new HashMap<String, String>();
         data.put(tag_mac, currentBeacons.toString());
         data.put(tag_token, AccessToken.getCurrentAccessToken().getToken());
-
+        Log.d("send beacon", data.toString());
         JSONObject json = new JSONObject(data);
 
         send(address, json);
@@ -229,7 +261,6 @@ public class BeaconFinder extends ActionBarActivity {
     }
 
     public void handleResponse(JSONObject response){
-        Map<String, Object> serverResponseMap = null;
         if(response == null){
             Log.d("error", "response jest nullem");
             return;
@@ -237,54 +268,73 @@ public class BeaconFinder extends ActionBarActivity {
         if(response.has(tag_data)){
             try {
                 JSONArray data = (JSONArray)response.get("data");
-                serverResponseMap = handleListResponse(data);
+                handleListResponse(data);
             } catch(JSONException e){
                 e.printStackTrace();
             }
-
         } else {
             Log.d("response handler", "There is no data");
         }
-        if (serverResponseMap == null) return;
-        Log.d("server Response", serverResponseMap.toString());
     };
 
-    public Map<String,Object> handleListResponse(JSONArray data){
+    public void handleListResponse(JSONArray data){
         for (int i = 0; i < data.length(); i++) {
             try {
                 JSONObject friend = data.getJSONObject(i);
+                Log.d("Friend found", friend.toString());
                 updateFriendList(friend);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
-        return null;
+        Log.d("friends", friends.toString());
+        updateView();
     }
 
     private void updateFriendList(JSONObject friend) throws JSONException {
-        String mac = (String) friend.get(tag_mac);
-        String time = (String) friend.get(tag_time);
-        String user = (String) friend.get(tag_user);
-
-        if(friends.get(mac) == null){
-            Log.d("Creating new known ", "beacon for: "+mac);
-            friends.put(mac, new HashMap<String,String>());
+        final String mac = (String) friend.get(tag_mac);
+        final String time = (String) friend.get(tag_time);
+        final String user = (String) friend.get(tag_user);
+        final String id = (String) friend.get(tag_id);
+        if (friends.get(mac) == null) {
+            Log.d("Creating new known ", "beacon for: " + mac);
+            friends.put(mac, new HashMap<String, String>());
         }
 
-        Map<String,String> beacon = friends.get(mac);
-        beacon.put(user, time);
-        updateView();
+        Map<String, String> beacon = friends.get(mac);
+        beacon.put(id, user);
     }
 
     private void updateView(){
 
+        List<RowBean> allFriendsInRange = new ArrayList<RowBean>();
 
-        RowBean RowBean_data[] = new RowBean[]{
-                new RowBean(tag_user)
-        };
-        RowAdapter adapter = new RowAdapter(this, R.layout.format_friend_line, RowBean_data);
+        for(String mac: friends.keySet()){
+            if(!currentBeacons.containsKey(mac)) continue;
+            Map<String,String> friend = friends.get(mac);
+            for(String friendId: friend.keySet()) {
+                String friendName = friend.get(friendId);
+                if(allFriendsInRange.contains(new RowBean(friendName, friendId))) continue;
+                allFriendsInRange.add(new RowBean(friendName, friendId));
+            }
+        }
+        RowBean[] data = new RowBean[allFriendsInRange.size()];
+        data = allFriendsInRange.toArray(data);
 
+        Log.d("array with friends", Integer.toString(data.length));
+
+        RowAdapter adapter = new RowAdapter(this, R.layout.format_friend_line, data);
+        Log.d("adapters count: ", Integer.toString(adapter.getCount()));
+        Log.d("listview", listView1.toString());
         listView1.setAdapter(adapter);
+    }
+
+    public void startConversationWith(Long userId){
+        Log.d("Start conversation with",Long.toString(userId));
+        Uri uri = Uri.parse("fb-messenger://user/");
+        uri = ContentUris.withAppendedId(uri,userId);
+        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+        startActivity(intent);
     }
 
 }

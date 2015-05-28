@@ -24,6 +24,11 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        android.support.v7.app.ActionBar barHide = getSupportActionBar();
+        if (barHide != null) {
+            barHide.hide();
+        }
+
         that=this;
         FacebookSdk.sdkInitialize(this.getApplicationContext());
         setContentView(R.layout.activity_main);
