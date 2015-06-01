@@ -1,5 +1,6 @@
 package slowhackaton.com.findmetouchmecatchme;
 
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
@@ -18,16 +19,25 @@ import com.facebook.login.widget.LoginButton;
 
 public class MainActivity extends ActionBarActivity {
 
-    LoginButton startbutton;
-    Context that;
-    CallbackManager callbackManager;
+    private int REQUEST_ENABLE_BT = 1;
+    private LoginButton startbutton;
+    private Context that;
+    private CallbackManager callbackManager;
+    private BluetoothAdapter bluetoothAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         android.support.v7.app.ActionBar barHide = getSupportActionBar();
+
         if (barHide != null) {
             barHide.hide();
         }
+
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        if(bluetoothNotEnabled()) askForBluetoothAccess();
 
         that=this;
         FacebookSdk.sdkInitialize(this.getApplicationContext());
@@ -53,6 +63,13 @@ public class MainActivity extends ActionBarActivity {
 
             }
         });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+
     }
 
     @Override
@@ -82,5 +99,14 @@ public class MainActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    public boolean bluetoothNotEnabled(){
+        return !bluetoothAdapter.isEnabled();
+    }
+
+    public void askForBluetoothAccess(){
+        Intent enableBluetoothIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+        startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT);
     }
 }

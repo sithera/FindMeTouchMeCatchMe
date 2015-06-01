@@ -58,7 +58,8 @@ public class RowAdapter extends ArrayAdapter<RowBean> {
             messangerButton.setOnClickListener(new View.OnClickListener(){
                 @Override
                 public void onClick(View view) {
-                    ((BeaconFinder)that.context).startConversationWith(Long.parseLong(object.id));
+                    if(object.isClickable() == false)return;
+                    ((BeaconFinder)that.context).startConversationWith(Long.parseLong(object.getGlobalId()));
                 }
             });
 
@@ -83,12 +84,21 @@ public class RowAdapter extends ArrayAdapter<RowBean> {
         Thread t = new Thread(new Runnable(){
             @Override
             public void run() {
+                while(data.getGlobalId() == null){
+                    try {
+                        sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+
                 final ImageView user_picture =(ImageView)row.findViewById(R.id.userPhoto);;
 
                 URL img_value = null;
 
                 try {
-                    img_value = new URL("http://graph.facebook.com/"+ data.id +"/picture?type=small");
+                    img_value = new URL("http://graph.facebook.com/"+ data.getGlobalId() +"/picture?type=small");
                 } catch (MalformedURLException e) {
                     e.printStackTrace();
                 }
@@ -96,7 +106,7 @@ public class RowAdapter extends ArrayAdapter<RowBean> {
                 Log.d("setting photo (url)", img_value.toString());
                 if(img_value == null) return;
                 Bitmap mIcon1 = null;
-
+                Log.d("photo url", "prepared");
 
 
                 try {

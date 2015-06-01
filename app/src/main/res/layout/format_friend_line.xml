@@ -8,7 +8,7 @@
     android:layout_width="fill_parent"
     android:layout_height="50sp" >
 
-    <ImageView android:id="@+id/imgIcon"
+    <ImageView android:id="@+id/userPhoto"
         android:src="@mipmap/iconfriend"
         android:layout_width="30sp"
         android:layout_height="fill_parent"
@@ -23,13 +23,13 @@
         android:text="Bronisław Komorowski"
         android:layout_height="fill_parent"
         android:gravity="center_vertical"
-        android:paddingLeft="80dp"
+        android:paddingLeft="54dp"
         android:textSize="22sp"
         android:textColor="#000000"
         android:layout_marginTop="5dp"
         android:layout_marginBottom="5dp" />
 
-    <ImageView android:id="@+id/imgIcon1"
+    <ImageView android:id="@+id/messanger"
         android:src="@mipmap/more"
         android:layout_width="30sp"
         android:layout_height="fill_parent"

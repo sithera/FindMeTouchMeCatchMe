@@ -7,14 +7,14 @@
 
     <TextView
         android:layout_width="fill_parent"
-        android:layout_height="45sp"
+        android:layout_height="48sp"
         android:background="#01579B"
-        android:text="  My friends around me"
+        android:text="People around me"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:gravity="center_vertical"
+        android:gravity="center"
         android:textColor="#FFF"
-        android:textSize="24sp"/>
+        android:textSize="23sp"/>
 
     <ListView
         android:id="@+id/Lista"
@@ -31,12 +31,13 @@
     <Button
         android:layout_width="match_parent"
         android:layout_height="45dp"
-        android:text="reload"
+        android:text="refresh"
+        android:onClick="potwierdzMiastoButton"
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:id="@+id/button"
-        android:background="#F57C00"
+        android:background="#F50057"
         android:textColor="#FFFFFF"
-        android:textSize="20sp"
+        android:textSize="23sp"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true" />
 </RelativeLayout>

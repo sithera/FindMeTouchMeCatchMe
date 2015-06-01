@@ -31,13 +31,13 @@ import javax.net.ssl.X509TrustManager;
 public class SendPostRequestTask extends AsyncTask<Object,JSONObject,JSONObject> {
     private String address;
     private JSONObject data;
-    private BeaconFinder beaconFinder;
+    private Caller caller;
 
-    public SendPostRequestTask(BeaconFinder beaconFinder){
+    public SendPostRequestTask(Caller caller){
         trustEveryone();
-        this.beaconFinder = beaconFinder;
-        this.address = beaconFinder.getAddress();
-        this.data = beaconFinder.getData();
+        this.caller = caller;
+        this.address = caller.getAddress();
+        this.data = caller.getData();
     }
 
     @Override
@@ -48,7 +48,7 @@ public class SendPostRequestTask extends AsyncTask<Object,JSONObject,JSONObject>
 
     @Override
     protected void onPostExecute(JSONObject result) {
-        this.beaconFinder.handleResponse(result);
+        this.caller.handleResponse(result);
     }
 
     private JSONObject sendRequest(final String url, final JSONObject obj){

@@ -35,7 +35,7 @@ import java.util.Map;
 
 import static java.lang.Thread.sleep;
 
-public class BeaconFinder extends ActionBarActivity {
+public class BeaconFinder extends ActionBarActivity implements Caller{
 
     private  final String SERVER_ADDRESS = "https://slow.telemabk.pl";
     private final Double TIME_IN_OURS = 0.5;
@@ -59,7 +59,7 @@ public class BeaconFinder extends ActionBarActivity {
     private final String tag_description = "description";
     private final String tag_id = "user_id";
 
-    private Map<String,Map<String,String>> friends;
+    private Map<String,List<RowBean>> friends;
 
     private Button refreshButton;
 
@@ -79,7 +79,7 @@ public class BeaconFinder extends ActionBarActivity {
 
         setContentView(R.layout.activity_ranging_and_displaying);
 
-        friends = new HashMap<String,Map<String,String>>();
+        friends = new HashMap<String, List<RowBean>>();
 
         currentBeacons = new HashMap<String,Timestamp>();
         beaconManager = new BeaconManager(this);
@@ -252,14 +252,17 @@ public class BeaconFinder extends ActionBarActivity {
         sendTask.execute();
     }
 
+    @Override
     public String getAddress(){
         return this.address;
     }
 
+    @Override
     public JSONObject getData(){
         return this.data;
     }
 
+    @Override
     public void handleResponse(JSONObject response){
         if(response == null){
             Log.d("error", "response jest nullem");
@@ -291,18 +294,20 @@ public class BeaconFinder extends ActionBarActivity {
         updateView();
     }
 
-    private void updateFriendList(JSONObject friend) throws JSONException {
-        final String mac = (String) friend.get(tag_mac);
-        final String time = (String) friend.get(tag_time);
-        final String user = (String) friend.get(tag_user);
-        final String id = (String) friend.get(tag_id);
+    private void updateFriendList(JSONObject rawFriend) throws JSONException {
+        final String mac = (String) rawFriend.get(tag_mac);
+        final String time = (String) rawFriend.get(tag_time);
+        final String user = (String) rawFriend.get(tag_user);
+        final String id = (String) rawFriend.get(tag_id);
         if (friends.get(mac) == null) {
             Log.d("Creating new known ", "beacon for: " + mac);
-            friends.put(mac, new HashMap<String, String>());
+            friends.put(mac, new ArrayList<RowBean>());
         }
 
-        Map<String, String> beacon = friends.get(mac);
-        beacon.put(id, user);
+        List<RowBean> beacon = friends.get(mac);
+        RowBean friend = new RowBean(user,id, null);
+        friend.requestForGlobalId();
+        beacon.add(friend);
     }
 
     private void updateView(){
@@ -311,11 +316,10 @@ public class BeaconFinder extends ActionBarActivity {
 
         for(String mac: friends.keySet()){
             if(!currentBeacons.containsKey(mac)) continue;
-            Map<String,String> friend = friends.get(mac);
-            for(String friendId: friend.keySet()) {
-                String friendName = friend.get(friendId);
-                if(allFriendsInRange.contains(new RowBean(friendName, friendId))) continue;
-                allFriendsInRange.add(new RowBean(friendName, friendId));
+            List<RowBean> friendsWithinBeacon = friends.get(mac);
+            for(RowBean friend: friendsWithinBeacon) {
+                if(allFriendsInRange.contains(friend)) continue;
+                allFriendsInRange.add(friend);
             }
         }
         RowBean[] data = new RowBean[allFriendsInRange.size()];
