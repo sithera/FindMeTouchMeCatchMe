@@ -4,6 +4,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.security.Timestamp;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,7 +13,7 @@ import java.util.Map;
  */
 public class RowBean implements Caller{
 
-    private Timestamp timestamp;
+    private Long timeUnixStyle;
     public String userName;
     public String id;
     private String globalId = null;
@@ -31,10 +32,10 @@ public class RowBean implements Caller{
         this.globalId = null;
     }
 
-    public RowBean(String userName, String id, Timestamp timestamp){
+    public RowBean(String userName, String id, long timeUnixStyle){
         this.userName = userName;
         this.id = id;
-        this.timestamp = timestamp;
+        this.timeUnixStyle = timeUnixStyle;
         this.globalId = null;
     }
 
@@ -102,5 +103,11 @@ public class RowBean implements Caller{
     @Override
     public JSONObject getData() {
         return this.data;
+    }
+
+    public boolean shouldBeRemovedIfOlderThan(Long timePeriodInMilis){
+        Long now = System.currentTimeMillis();
+        if(now - timeUnixStyle > timePeriodInMilis) return true;
+        return false;
     }
 }

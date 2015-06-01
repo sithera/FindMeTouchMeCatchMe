@@ -38,8 +38,9 @@ import static java.lang.Thread.sleep;
 public class BeaconFinder extends ActionBarActivity implements Caller{
 
     private  final String SERVER_ADDRESS = "https://slow.telemabk.pl";
-    private final Double TIME_IN_OURS = 0.5;
-    private final long HOUR  = 60*60*1000;
+    private final Double TIME_IN_HOURS = 0.01;
+    private final long HOUR  = 60*60*1000L;
+    private final long CLEAR_FRIENDS_TIME = 3 * 1000L;
 
     private Region ourRegion;
     private BeaconManager beaconManager;
@@ -59,13 +60,12 @@ public class BeaconFinder extends ActionBarActivity implements Caller{
     private final String tag_description = "description";
     private final String tag_id = "user_id";
 
-    private Map<String,List<RowBean>> friends;
+    private volatile Map<String,List<RowBean>> friends;
 
     private Button refreshButton;
 
-    private Map<String,Timestamp> currentBeacons;
+    private volatile Map<String,Timestamp> currentBeacons;
     public ListView listView1;
-    private final ArrayList<String> dataList = new ArrayList<String>(30);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,6 +85,8 @@ public class BeaconFinder extends ActionBarActivity implements Caller{
         beaconManager = new BeaconManager(this);
         ourRegion =  new Region("region", null, null, null);
 
+
+
         listView1=(ListView)findViewById(R.id.Lista);
         refreshButton = (Button)findViewById(R.id.button);
 
@@ -101,7 +103,8 @@ public class BeaconFinder extends ActionBarActivity implements Caller{
         super.onStart();
         startRangingBeacons();
         startSendingKnownBeaconsToServer();
-        cleanOldBeaconsAfter(TIME_IN_OURS);
+        cleanOldBeaconsAfter(TIME_IN_HOURS);
+        clearOldFriends();
     }
 
     private void startSendingKnownBeaconsToServer() {
@@ -111,7 +114,7 @@ public class BeaconFinder extends ActionBarActivity implements Caller{
                 while(threadsShouldBeRunning) {
                     addUser();
                     try {
-                        sleep(5*1000);
+                        sleep(1*1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -133,6 +136,12 @@ public class BeaconFinder extends ActionBarActivity implements Caller{
 
         threadsShouldBeRunning = false;
         LoginManager.getInstance().logOut();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        threadsShouldBeRunning = false;
     }
 
     @Override
@@ -187,17 +196,20 @@ public class BeaconFinder extends ActionBarActivity implements Caller{
             public void run() {
                 while(threadsShouldBeRunning){
                     try {
-                        sleep(3000);
+                        sleep(1*1000L);
+                        Log.d("cleanOldBeacons","should run");
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     Date date = new Date();
-                    Timestamp twoHoursAgo = new Timestamp(date.getTime() - (long)(timeInHours * HOUR));
-                    for(Map.Entry<String,Timestamp> entry: currentBeacons.entrySet()){
+                    Timestamp twoHoursAgo = new Timestamp(date.getTime() - (long)(1*1000));
+                    Map<String,Timestamp> currentBeaconsCopy = new HashMap<>(currentBeacons);
+                    for(Map.Entry<String,Timestamp> entry: currentBeaconsCopy.entrySet()){
                         String key = entry.getKey();
                         Timestamp timestamp = entry.getValue();
                         if(timestamp.before(twoHoursAgo)){
                             currentBeacons.remove(key);
+                            Log.d("Removing beacon: ",key);
                         }
                     }
                 }
@@ -299,13 +311,14 @@ public class BeaconFinder extends ActionBarActivity implements Caller{
         final String time = (String) rawFriend.get(tag_time);
         final String user = (String) rawFriend.get(tag_user);
         final String id = (String) rawFriend.get(tag_id);
+
         if (friends.get(mac) == null) {
             Log.d("Creating new known ", "beacon for: " + mac);
             friends.put(mac, new ArrayList<RowBean>());
         }
 
         List<RowBean> beacon = friends.get(mac);
-        RowBean friend = new RowBean(user,id, null);
+        RowBean friend = new RowBean(user,id, Long.parseLong(time));
         friend.requestForGlobalId();
         beacon.add(friend);
     }
@@ -339,6 +352,37 @@ public class BeaconFinder extends ActionBarActivity implements Caller{
         uri = ContentUris.withAppendedId(uri,userId);
         Intent intent = new Intent(Intent.ACTION_VIEW, uri);
         startActivity(intent);
+    }
+
+    private void clearOldFriends(){
+        Thread t = new Thread(){
+            @Override
+            public void run() {
+                while(threadsShouldBeRunning){
+                    userList();
+                    for(String mac: friends.keySet()){
+                        for(RowBean friend: friends.get(mac)){
+                            if(friend.shouldBeRemovedIfOlderThan(CLEAR_FRIENDS_TIME)){
+                                friends.remove(friend);
+                            }
+                        }
+                    }
+                    try {
+                        sleep(1*1000L);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        };
+
+        t.start();
+    }
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        this.finish();
     }
 
 }
